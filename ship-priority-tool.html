@@ -1,0 +1,831 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ship Priority Ranking Tool</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f6f8;
+      --panel: #ffffff;
+      --soft: #edf2f7;
+      --text: #17202a;
+      --muted: #617182;
+      --line: #d7e0e8;
+      --accent: #1769aa;
+      --accent-dark: #0f4f82;
+      --good: #177245;
+      --warn: #985c00;
+      --danger: #a73333;
+      --shadow: 0 16px 42px rgba(34, 49, 63, 0.10);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0 48px;
+    }
+
+    header {
+      margin-bottom: 22px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.75rem, 3vw, 2.65rem);
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    header p {
+      margin: 0;
+      max-width: 780px;
+      color: var(--muted);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(360px, 0.82fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .stack {
+      display: grid;
+      gap: 18px;
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 1.05rem;
+      line-height: 1.25;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    input[type="file"],
+    input[type="search"] {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+    }
+
+    input[type="file"] {
+      padding: 10px;
+    }
+
+    input[type="search"] {
+      min-height: 42px;
+      padding: 9px 11px;
+    }
+
+    button,
+    .download-link {
+      appearance: none;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 36px;
+      padding: 8px 11px;
+      font: inherit;
+      font-weight: 750;
+      text-decoration: none;
+      transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+      white-space: nowrap;
+    }
+
+    button:hover,
+    .download-link:hover {
+      background: var(--soft);
+      border-color: #b8c7d4;
+    }
+
+    button.primary,
+    .download-link.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    button.primary:hover,
+    .download-link.primary:hover {
+      background: var(--accent-dark);
+      border-color: var(--accent-dark);
+    }
+
+    button.danger {
+      color: var(--danger);
+    }
+
+    button:disabled,
+    .download-link[aria-disabled="true"] {
+      cursor: not-allowed;
+      opacity: 0.52;
+      pointer-events: none;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-top: 12px;
+    }
+
+    .status {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .status strong {
+      color: var(--text);
+    }
+
+    .ship-list,
+    .priority-list {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      overflow: auto;
+    }
+
+    .ship-list {
+      height: min(56vh, 620px);
+      min-height: 340px;
+      margin-top: 12px;
+    }
+
+    .priority-list {
+      max-height: min(56vh, 620px);
+      min-height: 300px;
+      padding: 0;
+      margin: 0;
+      list-style: none;
+    }
+
+    .ship-row,
+    .priority-row {
+      display: grid;
+      gap: 12px;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+      padding: 10px 12px;
+    }
+
+    .ship-row {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .priority-row {
+      grid-template-columns: 42px minmax(0, 1fr) auto;
+    }
+
+    .ship-row:last-child,
+    .priority-row:last-child {
+      border-bottom: 0;
+    }
+
+    .ship-row:hover,
+    .priority-row:hover {
+      background: #f8fbff;
+    }
+
+    .ship-name {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      font-weight: 700;
+    }
+
+    .ship-key {
+      margin-top: 2px;
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.78rem;
+      overflow-wrap: anywhere;
+    }
+
+    .rank {
+      color: var(--accent);
+      font-size: 1.05rem;
+      font-weight: 850;
+      text-align: right;
+    }
+
+    .row-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 7px;
+    }
+
+    .empty-state {
+      padding: 28px 16px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .notice {
+      margin-top: 12px;
+      border-left: 4px solid var(--accent);
+      background: #eef6ff;
+      color: #244a6d;
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 0.92rem;
+    }
+
+    .notice.success {
+      border-left-color: var(--good);
+      background: #eefaf3;
+      color: #1d5c3e;
+    }
+
+    .notice.warn {
+      border-left-color: var(--warn);
+      background: #fff7e8;
+      color: #704300;
+    }
+
+    .result-meta {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 900px) {
+      main {
+        width: min(100% - 20px, 1180px);
+        padding-top: 20px;
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .ship-list {
+        height: 420px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .ship-row,
+      .priority-row {
+        grid-template-columns: 1fr;
+      }
+
+      .rank {
+        text-align: left;
+      }
+
+      .row-actions {
+        justify-content: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Ship Priority Ranking Tool</h1>
+      <p>Extract ship names from global.ini, build an ordered priority list, then write rankings back to the matching vehicle name lines.</p>
+    </header>
+
+    <div class="layout">
+      <div class="stack">
+        <section aria-labelledby="upload-title">
+          <div class="section-title">
+            <h2 id="upload-title">1. Upload global.ini</h2>
+            <span class="status" id="globalStatus">No file loaded</span>
+          </div>
+          <label for="globalFile">global.ini</label>
+          <input id="globalFile" type="file" accept=".ini,.txt,text/plain">
+          <div id="globalNotice" class="notice" hidden></div>
+        </section>
+
+        <section aria-labelledby="ships-title">
+          <div class="section-title">
+            <h2 id="ships-title">2. Search + full ship list</h2>
+            <span class="status"><strong id="shipCount">0</strong> ships</span>
+          </div>
+          <label for="searchInput">Search ships</label>
+          <input id="searchInput" type="search" placeholder="Filter by ship name">
+          <div id="shipList" class="ship-list" aria-label="Ship list">
+            <div class="empty-state">Upload global.ini to populate the ship list.</div>
+          </div>
+        </section>
+      </div>
+
+      <div class="stack">
+        <section aria-labelledby="priority-title">
+          <div class="section-title">
+            <h2 id="priority-title">3. Priority list</h2>
+            <span class="status">Selected: <strong id="selectedCount">0</strong> ships</span>
+          </div>
+          <ol id="priorityList" class="priority-list" aria-label="Ranked priority list">
+            <li class="empty-state">Add ships from the search list to rank them.</li>
+          </ol>
+        </section>
+
+        <section aria-labelledby="save-title">
+          <div class="section-title">
+            <h2 id="save-title">4. Save / Load ranking</h2>
+          </div>
+          <label for="rankingFile">Load shipSorting.txt</label>
+          <input id="rankingFile" type="file" accept=".txt,text/plain">
+          <div class="controls">
+            <button id="savePriorityButton" type="button">Download shipSorting.txt</button>
+          </div>
+          <div id="rankingNotice" class="notice" hidden></div>
+        </section>
+
+        <section aria-labelledby="apply-title">
+          <div class="section-title">
+            <h2 id="apply-title">5. Apply changes + download updated file</h2>
+          </div>
+          <div class="controls">
+            <button id="applyButton" type="button" class="primary">Apply Ship Priority</button>
+            <a id="downloadGlobalLink" class="download-link primary" href="#" download="global.ini" aria-disabled="true">Download global.ini</a>
+          </div>
+          <p id="applyMeta" class="result-meta">Load global.ini and add ships to the priority list to create a result.</p>
+          <div id="applyNotice" class="notice" hidden></div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    var globalText = "";
+    var ships = [];
+    var priorityList = [];
+    var resultUrl = "";
+
+    var globalFileInput = document.getElementById("globalFile");
+    var rankingFileInput = document.getElementById("rankingFile");
+    var searchInput = document.getElementById("searchInput");
+    var shipListNode = document.getElementById("shipList");
+    var priorityListNode = document.getElementById("priorityList");
+    var globalStatus = document.getElementById("globalStatus");
+    var shipCount = document.getElementById("shipCount");
+    var selectedCount = document.getElementById("selectedCount");
+    var globalNotice = document.getElementById("globalNotice");
+    var rankingNotice = document.getElementById("rankingNotice");
+    var applyNotice = document.getElementById("applyNotice");
+    var applyMeta = document.getElementById("applyMeta");
+    var downloadGlobalLink = document.getElementById("downloadGlobalLink");
+
+    globalFileInput.addEventListener("change", function () {
+      var file = globalFileInput.files[0];
+      if (!file) return;
+
+      readFileAsText(file, function (text) {
+        globalText = text;
+        ships = parseGlobalFile(text);
+        prunePriorityList();
+        revokeResultUrl();
+        renderShipList();
+        renderPriorityList();
+        globalStatus.textContent = file.name;
+        applyMeta.textContent = "Ready to apply rankings to " + file.name + ".";
+        showNotice(globalNotice, "Extracted " + ships.length + " ship entr" + (ships.length === 1 ? "y" : "ies") + ".", "success");
+      });
+    });
+
+    rankingFileInput.addEventListener("change", function () {
+      var file = rankingFileInput.files[0];
+      if (!file) return;
+      loadPriorityList(file);
+    });
+
+    searchInput.addEventListener("input", renderShipList);
+    document.getElementById("savePriorityButton").addEventListener("click", savePriorityList);
+
+    document.getElementById("applyButton").addEventListener("click", function () {
+      if (!globalText) {
+        showNotice(applyNotice, "Upload global.ini before applying ship priorities.", "warn");
+        return;
+      }
+
+      if (!priorityList.length) {
+        showNotice(applyNotice, "Add at least one ship to the priority list first.", "warn");
+        return;
+      }
+
+      var result = applyPriorityToGlobal(globalText);
+      setDownload(downloadGlobalLink, result.text, "global.ini", "text/plain");
+      applyMeta.textContent = "Applied " + result.replacements + " ship ranking update" + plural(result.replacements) + ".";
+      showNotice(applyNotice, "Updated global.ini is ready to download.", "success");
+    });
+
+    function readFileAsText(file, callback) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        callback(String(reader.result || ""));
+      };
+      reader.onerror = function () {
+        alert("Unable to read " + file.name + ".");
+      };
+      reader.readAsText(file);
+    }
+
+    function parseGlobalFile(text) {
+      var found = [];
+      var seenKeys = new Set();
+      var lines = text.replace(/^\uFEFF/, "").split(/\r\n|\n|\r/);
+
+      lines.forEach(function (line) {
+        var match = line.match(/^\s*(vehicle_name[^=]*)=(.*)$/i);
+        if (!match) return;
+
+        var key = match[1].trim();
+        if (/_short(?:,.*)?$/i.test(key)) return;
+        if (seenKeys.has(key)) return;
+        seenKeys.add(key);
+
+        found.push({
+          key: key,
+          name: stripExistingRank(match[2]),
+          originalValue: String(match[2] || "").trim()
+        });
+      });
+
+      return found.sort(function (a, b) {
+        var nameCompare = a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+        return nameCompare || a.key.localeCompare(b.key, undefined, { sensitivity: "base" });
+      });
+    }
+
+    function stripExistingRank(value) {
+      return String(value || "").trim().replace(/^\d+\.\s*/, "").replace(/\s+/g, " ").trim();
+    }
+
+    function renderShipList() {
+      var visibleShips = getVisibleShips();
+      var selectedKeys = new Set(priorityList.map(function (ship) {
+        return ship.key;
+      }));
+      var duplicateNames = getDuplicateNames();
+
+      shipListNode.textContent = "";
+      shipCount.textContent = String(ships.length);
+
+      if (!ships.length) {
+        shipListNode.appendChild(emptyState("Upload global.ini to populate the ship list."));
+        return;
+      }
+
+      if (!visibleShips.length) {
+        shipListNode.appendChild(emptyState("No ships match the current search."));
+        return;
+      }
+
+      visibleShips.forEach(function (ship) {
+        var row = document.createElement("div");
+        row.className = "ship-row";
+
+        var details = document.createElement("div");
+        var name = document.createElement("div");
+        name.className = "ship-name";
+        name.textContent = ship.name;
+
+        if (duplicateNames.has(normalizeText(ship.name).toLowerCase())) {
+          var key = document.createElement("div");
+          key.className = "ship-key";
+          key.textContent = ship.key;
+          details.appendChild(name);
+          details.appendChild(key);
+        } else {
+          details.appendChild(name);
+        }
+
+        var button = document.createElement("button");
+        button.type = "button";
+        button.textContent = selectedKeys.has(ship.key) ? "Added" : "Add";
+        button.disabled = selectedKeys.has(ship.key);
+        button.addEventListener("click", function () {
+          addToPriority(ship);
+        });
+
+        row.appendChild(details);
+        row.appendChild(button);
+        shipListNode.appendChild(row);
+      });
+    }
+
+    function getVisibleShips() {
+      var query = normalizeText(searchInput.value).toLowerCase();
+      if (!query) return ships.slice();
+      return ships.filter(function (ship) {
+        return ship.name.toLowerCase().indexOf(query) !== -1 || ship.key.toLowerCase().indexOf(query) !== -1;
+      });
+    }
+
+    function addToPriority(ship) {
+      if (priorityList.some(function (item) { return item.key === ship.key; })) return;
+      priorityList.push({ key: ship.key, name: ship.name });
+      renderPriorityList();
+      renderShipList();
+    }
+
+    function renderPriorityList() {
+      priorityListNode.textContent = "";
+      selectedCount.textContent = String(priorityList.length);
+      var duplicateNames = getDuplicateNames();
+
+      if (!priorityList.length) {
+        priorityListNode.appendChild(emptyState("Add ships from the search list to rank them."));
+        return;
+      }
+
+      priorityList.forEach(function (ship, index) {
+        var row = document.createElement("li");
+        row.className = "priority-row";
+
+        var rank = document.createElement("div");
+        rank.className = "rank";
+        rank.textContent = String(index + 1) + ".";
+
+        var details = document.createElement("div");
+        var name = document.createElement("div");
+        name.className = "ship-name";
+        name.textContent = ship.name;
+
+        if (duplicateNames.has(normalizeText(ship.name).toLowerCase())) {
+          var key = document.createElement("div");
+          key.className = "ship-key";
+          key.textContent = ship.key;
+          details.appendChild(name);
+          details.appendChild(key);
+        } else {
+          details.appendChild(name);
+        }
+
+        var actions = document.createElement("div");
+        actions.className = "row-actions";
+
+        var upButton = document.createElement("button");
+        upButton.type = "button";
+        upButton.textContent = "Move Up";
+        upButton.disabled = index === 0;
+        upButton.addEventListener("click", function () {
+          moveUp(index);
+        });
+
+        var downButton = document.createElement("button");
+        downButton.type = "button";
+        downButton.textContent = "Move Down";
+        downButton.disabled = index === priorityList.length - 1;
+        downButton.addEventListener("click", function () {
+          moveDown(index);
+        });
+
+        var removeButton = document.createElement("button");
+        removeButton.type = "button";
+        removeButton.className = "danger";
+        removeButton.textContent = "Remove";
+        removeButton.addEventListener("click", function () {
+          removeShip(index);
+        });
+
+        actions.appendChild(upButton);
+        actions.appendChild(downButton);
+        actions.appendChild(removeButton);
+        row.appendChild(rank);
+        row.appendChild(details);
+        row.appendChild(actions);
+        priorityListNode.appendChild(row);
+      });
+    }
+
+    function moveUp(index) {
+      if (index <= 0) return;
+      var ship = priorityList.splice(index, 1)[0];
+      priorityList.splice(index - 1, 0, ship);
+      renderPriorityList();
+    }
+
+    function moveDown(index) {
+      if (index >= priorityList.length - 1) return;
+      var ship = priorityList.splice(index, 1)[0];
+      priorityList.splice(index + 1, 0, ship);
+      renderPriorityList();
+    }
+
+    function removeShip(index) {
+      priorityList.splice(index, 1);
+      renderPriorityList();
+      renderShipList();
+    }
+
+    function savePriorityList() {
+      var text = priorityList.map(function (ship, index) {
+        return String(index + 1) + "|" + ship.name;
+      }).join("\n");
+
+      downloadText(text + (text ? "\n" : ""), "shipSorting.txt", "text/plain");
+      showNotice(rankingNotice, "Downloaded " + priorityList.length + " ranked ship" + plural(priorityList.length) + ".", "success");
+    }
+
+    function loadPriorityList(file) {
+      readFileAsText(file, function (text) {
+        var loaded = [];
+        var usedKeys = new Set();
+        var byName = new Map();
+        var byKey = new Map();
+
+        ships.forEach(function (ship) {
+          var normalizedName = normalizeText(ship.name).toLowerCase();
+          if (!byName.has(normalizedName)) byName.set(normalizedName, []);
+          byName.get(normalizedName).push(ship);
+          byKey.set(ship.key, ship);
+        });
+
+        text.replace(/^\uFEFF/, "").split(/\r\n|\n|\r/).forEach(function (line) {
+          var parts = line.split("|");
+          if (parts.length < 2) return;
+
+          // The required format is rank|name. If a future file includes rank|key|name,
+          // the loader also restores it by key without changing the saved default.
+          var keyCandidate = normalizeText(parts[1]);
+          var nameCandidate = normalizeText(parts.slice(parts.length > 2 ? 2 : 1).join("|"));
+          var ship = byKey.get(keyCandidate);
+
+          if (!ship) {
+            var matches = byName.get(nameCandidate.toLowerCase()) || [];
+            ship = matches.find(function (candidate) {
+              return !usedKeys.has(candidate.key);
+            });
+          }
+
+          if (ship && !usedKeys.has(ship.key)) {
+            loaded.push({ key: ship.key, name: ship.name });
+            usedKeys.add(ship.key);
+          }
+        });
+
+        priorityList = loaded;
+        renderPriorityList();
+        renderShipList();
+        showNotice(rankingNotice, "Loaded " + loaded.length + " ranked ship" + plural(loaded.length) + ".", loaded.length ? "success" : "warn");
+      });
+    }
+
+    function applyPriorityToGlobal(text) {
+      var ranksByKey = new Map();
+      priorityList.forEach(function (ship, index) {
+        ranksByKey.set(ship.key, {
+          rank: index + 1,
+          name: ship.name
+        });
+      });
+
+      var replacements = 0;
+      var output = text.replace(/([^\r\n]*)(\r\n|\n|\r|$)/g, function (match, line, ending) {
+        if (match === "") return match;
+
+        var parsed = line.match(/^(\s*)(vehicle_name[^=]*)(\s*=\s*)(.*)$/i);
+        if (!parsed) return match;
+
+        var cleanKey = parsed[2].trim();
+        if (!ranksByKey.has(cleanKey)) return match;
+
+        var ranked = ranksByKey.get(cleanKey);
+        replacements += 1;
+        return parsed[1] + parsed[2] + parsed[3] + ranked.rank + ". " + ranked.name + ending;
+      });
+
+      return {
+        text: output,
+        replacements: replacements
+      };
+    }
+
+    function prunePriorityList() {
+      if (!ships.length) {
+        priorityList = [];
+        return;
+      }
+
+      var known = new Map();
+      ships.forEach(function (ship) {
+        known.set(ship.key, ship);
+      });
+
+      priorityList = priorityList.filter(function (item) {
+        return known.has(item.key);
+      }).map(function (item) {
+        var ship = known.get(item.key);
+        return { key: ship.key, name: ship.name };
+      });
+    }
+
+    function normalizeText(value) {
+      return String(value || "").replace(/\s+/g, " ").trim();
+    }
+
+    function getDuplicateNames() {
+      var counts = new Map();
+      ships.forEach(function (ship) {
+        var normalized = normalizeText(ship.name).toLowerCase();
+        counts.set(normalized, (counts.get(normalized) || 0) + 1);
+      });
+
+      var duplicates = new Set();
+      counts.forEach(function (count, name) {
+        if (count > 1) duplicates.add(name);
+      });
+      return duplicates;
+    }
+
+    function emptyState(message) {
+      var node = document.createElement("div");
+      node.className = "empty-state";
+      node.textContent = message;
+      return node;
+    }
+
+    function showNotice(node, message, type) {
+      node.textContent = message;
+      node.className = "notice" + (type ? " " + type : "");
+      node.hidden = false;
+    }
+
+    function setDownload(link, text, filename, mimeType) {
+      revokeResultUrl();
+      var blob = new Blob([text], { type: mimeType || "text/plain" });
+      resultUrl = URL.createObjectURL(blob);
+      link.href = resultUrl;
+      link.download = filename;
+      link.setAttribute("aria-disabled", "false");
+    }
+
+    function downloadText(text, filename, mimeType) {
+      var blob = new Blob([text], { type: mimeType || "text/plain" });
+      var url = URL.createObjectURL(blob);
+      var link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function revokeResultUrl() {
+      if (resultUrl) {
+        URL.revokeObjectURL(resultUrl);
+        resultUrl = "";
+      }
+      downloadGlobalLink.href = "#";
+      downloadGlobalLink.setAttribute("aria-disabled", "true");
+    }
+
+    function plural(count) {
+      return count === 1 ? "" : "s";
+    }
+  </script>
+</body>
+</html>
