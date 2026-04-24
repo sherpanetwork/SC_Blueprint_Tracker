@@ -468,15 +468,21 @@
       // Convert only for scanning; the original uploaded files are never mutated here.
       var lines = text.replace(/^\uFEFF/, "").replace(/\\n/g, "\n").split(/\r\n|\n|\r/);
 
-      for (var i = 0; i < lines.length; i += 1) {
-        if (lines[i].indexOf("<EM4>Potential Blueprints</EM4>") === -1) continue;
+      var potentialHeaderPattern = /<EM4>\s*Potential Blueprints[^<]*<\/EM4>/i;
+      var iniEntryPattern = /^[A-Za-z0-9_.-]+(?:,[A-Za-z])?=/;
 
+      for (var i = 0; i < lines.length; i += 1) {
+        if (!potentialHeaderPattern.test(lines[i])) continue;
+
+        // Some contracts put blueprint bullets under extra EM4 subsection labels.
+        // Keep scanning until the next ini key instead of stopping at those labels.
         for (var j = i + 1; j < lines.length; j += 1) {
           var rawLine = lines[j];
           var trimmed = rawLine.trim();
 
-          if (trimmed === "") break;
-          if (!/^\-\s+/.test(trimmed)) break;
+          if (iniEntryPattern.test(trimmed)) break;
+          if (trimmed === "" || /^<EM4>.*<\/EM4>$/.test(trimmed)) continue;
+          if (!/^\-\s+/.test(trimmed)) continue;
 
           var name = normalizeBlueprintName(trimmed.replace(/^\-\s+/, ""));
           if (name && !seen.has(name)) {
