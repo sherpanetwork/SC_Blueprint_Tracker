@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Blueprint Owned Status Tool</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fa;
+      --panel: #ffffff;
+      --panel-soft: #eef3f8;
+      --text: #17202a;
+      --muted: #5c6b7a;
+      --line: #d8e0e8;
+      --accent: #1f6feb;
+      --accent-dark: #174ea6;
+      --success: #16794c;
+      --warn: #a15c00;
+      --shadow: 0 16px 45px rgba(28, 45, 66, 0.10);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+
+    main {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0 48px;
+    }
+
+    header {
+      margin-bottom: 22px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.75rem, 3vw, 2.7rem);
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    header p {
+      max-width: 760px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 1rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(360px, 0.85fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .stack {
+      display: grid;
+      gap: 18px;
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 1.05rem;
+      line-height: 1.25;
+    }
+
+    .status {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .status strong {
+      color: var(--text);
+    }
+
+    label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 650;
+      margin-bottom: 8px;
+    }
+
+    input[type="file"],
+    input[type="search"] {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+    }
+
+    input[type="file"] {
+      padding: 10px;
+    }
+
+    input[type="search"] {
+      min-height: 42px;
+      padding: 9px 11px;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-top: 12px;
+    }
+
+    button,
+    .download-link {
+      appearance: none;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      padding: 8px 12px;
+      font: inherit;
+      font-weight: 700;
+      text-decoration: none;
+      transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+    }
+
+    button.primary,
+    .download-link.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    button:hover,
+    .download-link:hover {
+      background: var(--panel-soft);
+      border-color: #b8c5d1;
+    }
+
+    button.primary:hover,
+    .download-link.primary:hover {
+      background: var(--accent-dark);
+      border-color: var(--accent-dark);
+    }
+
+    button:disabled,
+    .download-link[aria-disabled="true"] {
+      cursor: not-allowed;
+      opacity: 0.55;
+      pointer-events: none;
+    }
+
+    .checklist-tools {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: end;
+      margin-bottom: 12px;
+    }
+
+    .blueprint-list {
+      height: min(58vh, 620px);
+      min-height: 320px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+    }
+
+    .blueprint-row {
+      display: grid;
+      grid-template-columns: 22px 1fr;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .blueprint-row:last-child {
+      border-bottom: 0;
+    }
+
+    .blueprint-row:hover {
+      background: #f8fbff;
+    }
+
+    .blueprint-row input {
+      width: 17px;
+      height: 17px;
+      margin: 0;
+      accent-color: var(--accent);
+    }
+
+    .blueprint-name {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .empty-state {
+      padding: 28px 16px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .notice {
+      margin-top: 12px;
+      border-left: 4px solid var(--accent);
+      background: #f0f6ff;
+      color: #254469;
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 0.92rem;
+    }
+
+    .notice.success {
+      border-left-color: var(--success);
+      background: #eefaf4;
+      color: #1c5d3f;
+    }
+
+    .notice.warn {
+      border-left-color: var(--warn);
+      background: #fff6e8;
+      color: #704300;
+    }
+
+    .result-box {
+      display: grid;
+      gap: 10px;
+    }
+
+    .result-meta {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 860px) {
+      main {
+        width: min(100% - 20px, 1120px);
+        padding-top: 20px;
+      }
+
+      .grid,
+      .checklist-tools {
+        grid-template-columns: 1fr;
+      }
+
+      .blueprint-list {
+        height: 420px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Blueprint Owned Status Tool</h1>
+      <p>Extract blueprint names from contracts.ini, track which ones you own, then apply owned markers to matching blueprint lines in global.ini.</p>
+    </header>
+
+    <div class="grid">
+      <div class="stack">
+        <section aria-labelledby="contracts-title">
+          <div class="section-title">
+            <h2 id="contracts-title">1. Upload contracts.ini</h2>
+            <span class="status" id="contractsStatus">No file loaded</span>
+          </div>
+          <label for="contractsFile">contracts.ini</label>
+          <input id="contractsFile" type="file" accept=".ini,.txt,text/plain">
+          <div id="contractsNotice" class="notice" hidden></div>
+        </section>
+
+        <section aria-labelledby="checklist-title">
+          <div class="section-title">
+            <h2 id="checklist-title">2. Blueprint checklist</h2>
+            <span class="status"><strong id="ownedCount">0</strong> / <span id="totalCount">0</span> owned</span>
+          </div>
+
+          <div class="checklist-tools">
+            <div>
+              <label for="searchInput">Search blueprints</label>
+              <input id="searchInput" type="search" placeholder="Filter by name">
+            </div>
+            <div class="controls">
+              <button id="selectAllButton" type="button">Select All</button>
+              <button id="deselectAllButton" type="button">Deselect All</button>
+            </div>
+          </div>
+
+          <div id="blueprintList" class="blueprint-list" role="list" aria-label="Blueprint checklist">
+            <div class="empty-state">Upload contracts.ini to populate the checklist.</div>
+          </div>
+        </section>
+      </div>
+
+      <div class="stack">
+        <section aria-labelledby="owned-title">
+          <div class="section-title">
+            <h2 id="owned-title">3. Import / Export owned list</h2>
+          </div>
+          <label for="ownedFile">Import blueprintsOwned.txt</label>
+          <input id="ownedFile" type="file" accept=".txt,text/plain">
+          <div class="controls">
+            <button id="downloadOwnedButton" type="button">Download Owned List</button>
+          </div>
+          <div id="ownedNotice" class="notice" hidden></div>
+        </section>
+
+        <section aria-labelledby="global-title">
+          <div class="section-title">
+            <h2 id="global-title">4. Upload global.ini</h2>
+            <span class="status" id="globalStatus">No file loaded</span>
+          </div>
+          <label for="globalFile">global.ini</label>
+          <input id="globalFile" type="file" accept=".ini,.txt,text/plain">
+          <div id="globalNotice" class="notice" hidden></div>
+        </section>
+
+        <section aria-labelledby="apply-title">
+          <div class="section-title">
+            <h2 id="apply-title">5. Apply + Download result</h2>
+          </div>
+          <div class="result-box">
+            <button id="applyButton" type="button" class="primary">Apply Owned Status</button>
+            <a id="downloadGlobalLink" class="download-link primary" href="#" download="global.ini" aria-disabled="true">Download Result</a>
+            <div id="applyMeta" class="result-meta">Load global.ini and select owned blueprints to create a result.</div>
+          </div>
+          <div id="applyNotice" class="notice" hidden></div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    var blueprints = [];
+    var ownedSet = new Set();
+    var globalText = "";
+    var resultUrl = "";
+
+    var contractsFileInput = document.getElementById("contractsFile");
+    var ownedFileInput = document.getElementById("ownedFile");
+    var globalFileInput = document.getElementById("globalFile");
+    var searchInput = document.getElementById("searchInput");
+    var blueprintList = document.getElementById("blueprintList");
+    var ownedCount = document.getElementById("ownedCount");
+    var totalCount = document.getElementById("totalCount");
+    var contractsStatus = document.getElementById("contractsStatus");
+    var globalStatus = document.getElementById("globalStatus");
+    var contractsNotice = document.getElementById("contractsNotice");
+    var ownedNotice = document.getElementById("ownedNotice");
+    var globalNotice = document.getElementById("globalNotice");
+    var applyNotice = document.getElementById("applyNotice");
+    var applyMeta = document.getElementById("applyMeta");
+    var downloadGlobalLink = document.getElementById("downloadGlobalLink");
+
+    contractsFileInput.addEventListener("change", function () {
+      var file = contractsFileInput.files[0];
+      if (!file) return;
+
+      readFileAsText(file, function (text) {
+        blueprints = parseContractsFile(text);
+        pruneOwnedSet();
+        renderChecklist();
+        contractsStatus.textContent = file.name;
+        showNotice(contractsNotice, "Extracted " + blueprints.length + " unique blueprint" + plural(blueprints.length) + ".", "success");
+      });
+    });
+
+    ownedFileInput.addEventListener("change", function () {
+      var file = ownedFileInput.files[0];
+      if (!file) return;
+      importOwned(file);
+    });
+
+    globalFileInput.addEventListener("change", function () {
+      var file = globalFileInput.files[0];
+      if (!file) return;
+
+      readFileAsText(file, function (text) {
+        globalText = text;
+        revokeResultUrl();
+        globalStatus.textContent = file.name;
+        applyMeta.textContent = "Ready to apply owned status to " + file.name + ".";
+        showNotice(globalNotice, "Loaded " + file.name + " without modifying it.", "success");
+      });
+    });
+
+    searchInput.addEventListener("input", renderChecklist);
+
+    document.getElementById("selectAllButton").addEventListener("click", function () {
+      getVisibleBlueprints().forEach(function (name) {
+        ownedSet.add(name);
+      });
+      renderChecklist();
+    });
+
+    document.getElementById("deselectAllButton").addEventListener("click", function () {
+      getVisibleBlueprints().forEach(function (name) {
+        ownedSet.delete(name);
+      });
+      renderChecklist();
+    });
+
+    document.getElementById("downloadOwnedButton").addEventListener("click", exportOwned);
+
+    document.getElementById("applyButton").addEventListener("click", function () {
+      if (!globalText) {
+        showNotice(applyNotice, "Upload global.ini before applying owned status.", "warn");
+        return;
+      }
+
+      var result = applyOwnedToGlobal(globalText);
+      setDownload(downloadGlobalLink, result.text, "global.ini", "text/plain");
+      applyMeta.textContent = "Applied " + result.replacements + " owned marker" + plural(result.replacements) + ".";
+      showNotice(applyNotice, "Result is ready. Other text and formatting were preserved.", "success");
+    });
+
+    function readFileAsText(file, callback) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        callback(String(reader.result || ""));
+      };
+      reader.onerror = function () {
+        alert("Unable to read " + file.name + ".");
+      };
+      reader.readAsText(file);
+    }
+
+    function parseContractsFile(text) {
+      return extractBlueprints(text);
+    }
+
+    function extractBlueprints(text) {
+      var names = [];
+      var seen = new Set();
+      // The Star Citizen ini text commonly stores visible line breaks as literal "\n".
+      // Convert only for scanning; the original uploaded files are never mutated here.
+      var lines = text.replace(/^\uFEFF/, "").replace(/\\n/g, "\n").split(/\r\n|\n|\r/);
+
+      for (var i = 0; i < lines.length; i += 1) {
+        if (lines[i].indexOf("<EM4>Potential Blueprints</EM4>") === -1) continue;
+
+        for (var j = i + 1; j < lines.length; j += 1) {
+          var rawLine = lines[j];
+          var trimmed = rawLine.trim();
+
+          if (trimmed === "") break;
+          if (!/^\-\s+/.test(trimmed)) break;
+
+          var name = normalizeBlueprintName(trimmed.replace(/^\-\s+/, ""));
+          if (name && !seen.has(name)) {
+            seen.add(name);
+            names.push(name);
+          }
+        }
+      }
+
+      return names.sort(function (a, b) {
+        return a.localeCompare(b, undefined, { sensitivity: "base" });
+      });
+    }
+
+    function normalizeBlueprintName(name) {
+      return String(name || "").replace(/\s+/g, " ").trim();
+    }
+
+    function renderChecklist() {
+      var visible = getVisibleBlueprints();
+      blueprintList.textContent = "";
+
+      if (!blueprints.length) {
+        blueprintList.appendChild(emptyState("Upload contracts.ini to populate the checklist."));
+      } else if (!visible.length) {
+        blueprintList.appendChild(emptyState("No blueprints match the current search."));
+      } else {
+        visible.forEach(function (name) {
+          var row = document.createElement("label");
+          row.className = "blueprint-row";
+          row.setAttribute("role", "listitem");
+
+          var checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.checked = ownedSet.has(name);
+          checkbox.addEventListener("change", function () {
+            if (checkbox.checked) {
+              ownedSet.add(name);
+            } else {
+              ownedSet.delete(name);
+            }
+            updateCounts();
+          });
+
+          var text = document.createElement("span");
+          text.className = "blueprint-name";
+          text.textContent = name;
+
+          row.appendChild(checkbox);
+          row.appendChild(text);
+          blueprintList.appendChild(row);
+        });
+      }
+
+      updateCounts();
+    }
+
+    function getVisibleBlueprints() {
+      var query = normalizeBlueprintName(searchInput.value).toLowerCase();
+      if (!query) return blueprints.slice();
+      return blueprints.filter(function (name) {
+        return name.toLowerCase().indexOf(query) !== -1;
+      });
+    }
+
+    function updateCounts() {
+      ownedCount.textContent = String(countKnownOwned());
+      totalCount.textContent = String(blueprints.length);
+    }
+
+    function countKnownOwned() {
+      return blueprints.filter(function (name) {
+        return ownedSet.has(name);
+      }).length;
+    }
+
+    function pruneOwnedSet() {
+      if (!blueprints.length) return;
+      var known = new Set(blueprints);
+      ownedSet.forEach(function (name) {
+        if (!known.has(name)) ownedSet.delete(name);
+      });
+    }
+
+    function importOwned(file) {
+      readFileAsText(file, function (text) {
+        var imported = text.replace(/^\uFEFF/, "").split(/\r\n|\n|\r/)
+          .map(normalizeBlueprintName)
+          .filter(Boolean);
+        var known = new Set(blueprints);
+        var matched = 0;
+        var skipped = 0;
+
+        imported.forEach(function (name) {
+          if (!blueprints.length || known.has(name)) {
+            if (!ownedSet.has(name)) matched += 1;
+            ownedSet.add(name);
+          } else {
+            skipped += 1;
+          }
+        });
+
+        renderChecklist();
+
+        if (blueprints.length) {
+          showNotice(ownedNotice, "Imported " + matched + " matching item" + plural(matched) + ". Skipped " + skipped + " unknown item" + plural(skipped) + ".", skipped ? "warn" : "success");
+        } else {
+          showNotice(ownedNotice, "Imported " + imported.length + " item" + plural(imported.length) + ". Load contracts.ini to match them against the checklist.", "success");
+        }
+      });
+    }
+
+    function exportOwned() {
+      var owned = Array.from(ownedSet).sort(function (a, b) {
+        return a.localeCompare(b, undefined, { sensitivity: "base" });
+      });
+      downloadText(owned.join("\n") + (owned.length ? "\n" : ""), "blueprintsOwned.txt", "text/plain");
+      showNotice(ownedNotice, "Downloaded " + owned.length + " owned blueprint" + plural(owned.length) + ".", "success");
+    }
+
+    function applyOwnedToGlobal(text) {
+      var output = text;
+      var replacements = 0;
+      // Longer names first keeps similar names independent, even before the exact line
+      // boundary check rules out partial matches.
+      var owned = Array.from(ownedSet).sort(function (a, b) {
+        return b.length - a.length;
+      });
+
+      owned.forEach(function (name) {
+        var escapedName = escapeRegExp(name).replace(/\s+/g, "[ \\t]+");
+        // Match either physical newlines or literal "\n" separators and require a
+        // line boundary after the blueprint name. Already-prefixed lines do not match.
+        var pattern = new RegExp("(^|\\r\\n|\\n|\\r|\\\\n)([ \\t]*)-[ \\t]+" + escapedName + "([ \\t]*)(?=$|\\r\\n|\\n|\\r|\\\\n)", "g");
+
+        output = output.replace(pattern, function (match, separator, indent, trailing) {
+          replacements += 1;
+          return separator + indent + "Owned: - " + name + trailing;
+        });
+      });
+
+      return {
+        text: output,
+        replacements: replacements
+      };
+    }
+
+    function escapeRegExp(value) {
+      return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+
+    function emptyState(message) {
+      var node = document.createElement("div");
+      node.className = "empty-state";
+      node.textContent = message;
+      return node;
+    }
+
+    function showNotice(node, message, type) {
+      node.textContent = message;
+      node.className = "notice" + (type ? " " + type : "");
+      node.hidden = false;
+    }
+
+    function setDownload(link, text, filename, mimeType) {
+      revokeResultUrl();
+      var blob = new Blob([text], { type: mimeType || "text/plain" });
+      resultUrl = URL.createObjectURL(blob);
+      link.href = resultUrl;
+      link.download = filename;
+      link.setAttribute("aria-disabled", "false");
+    }
+
+    function downloadText(text, filename, mimeType) {
+      var blob = new Blob([text], { type: mimeType || "text/plain" });
+      var url = URL.createObjectURL(blob);
+      var link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function revokeResultUrl() {
+      if (resultUrl) {
+        URL.revokeObjectURL(resultUrl);
+        resultUrl = "";
+      }
+      downloadGlobalLink.href = "#";
+      downloadGlobalLink.setAttribute("aria-disabled", "true");
+    }
+
+    function plural(count) {
+      return count === 1 ? "" : "s";
+    }
+  </script>
+</body>
+</html>
