@@ -455,7 +455,7 @@
       }
 
       var result = applyPriorityToGlobal(globalText);
-      setDownload(downloadGlobalLink, result.text, "global.ini", "text/plain");
+      setDownload(downloadGlobalLink, ensureUtf8Bom(result.text), "global.ini", "text/plain;charset=utf-8");
       applyMeta.textContent = "Applied " + result.replacements + " ship ranking update" + plural(result.replacements) + ".";
       showNotice(applyNotice, "Updated global.ini is ready to download.", "success");
     });
@@ -764,6 +764,11 @@
 
     function normalizeText(value) {
       return String(value || "").replace(/\s+/g, " ").trim();
+    }
+
+    function ensureUtf8Bom(text) {
+      text = String(text || "");
+      return text.charAt(0) === "\uFEFF" ? text : "\uFEFF" + text;
     }
 
     function getDuplicateNames() {
