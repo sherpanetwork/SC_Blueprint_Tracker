@@ -441,7 +441,7 @@
       }
 
       var result = applyOwnedToGlobal(globalText);
-      setDownload(downloadGlobalLink, result.text, "global.ini", "text/plain");
+      setDownload(downloadGlobalLink, ensureUtf8Bom(result.text), "global.ini", "text/plain;charset=utf-8");
       applyMeta.textContent = "Applied " + result.replacements + " owned marker" + plural(result.replacements) + ".";
       showNotice(applyNotice, "Result is ready. Other text and formatting were preserved.", "success");
     });
@@ -632,6 +632,11 @@
 
     function escapeRegExp(value) {
       return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+
+    function ensureUtf8Bom(text) {
+      text = String(text || "");
+      return text.charAt(0) === "\uFEFF" ? text : "\uFEFF" + text;
     }
 
     function emptyState(message) {
