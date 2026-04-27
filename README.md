@@ -1,4 +1,4 @@
-# Star Citizen Local Tools
+# SC_Tools: Star Citizen Local Tools
 
 Simple, browser-based tools for working with *Star Citizen* `.ini` files.
 
@@ -13,8 +13,8 @@ Everything runs locally in your browser. No build step, server, or package insta
 
 ## Quick Start
 
-1. Download or open one of the HTML tools from this repo  
-2. Open it in your browser (double-click the file)  
+1. Download the repo, or download the specific `.html` tool you want to use  
+2. Open the `.html` file in your browser (double-click the file)  
 3. Upload your `.ini` files  
 4. Make your changes  
 5. Download the updated file  
@@ -74,10 +74,12 @@ Use `ship-priority-tool.html` to search, select, and rank ships from `global.ini
 
 ## Required Files
 
-These tools rely on `.ini` files generated from community tools:
+These tools rely on `.ini` files generated from community tools. Starter copies are included in this repo, but you can also use fresh files from the sources listed in Credits / Data Sources.
 
 - `contracts.ini` → Used for blueprint extraction  
 - `global.ini` → Used for applying blueprint ownership and ship sorting  
+- `global_with_contracts.ini` → Useful for the Blueprint Tracker if you do not already have a modified `global.ini`
+- `4.7.2_LIVE_global.ini` → Clean game localization file useful for the Ship Priority Tool
 
 ---
 
@@ -89,6 +91,16 @@ Instead of translating the game into another language, these tools make small, t
 
 You can read CIG's community localization instructions here:
 https://robertsspaceindustries.com/spectrum/community/SC/forum/1/thread/star-citizen-community-localization-update
+
+---
+
+## Fan Project Notice
+
+This is an unofficial Star Citizen fan tool, not affiliated with the Cloud Imperium group of companies. Content not authored by this project is property of its respective owners.
+
+Official Star Citizen website: https://robertsspaceindustries.com/
+
+These tools are free, community-made, and not intended for commercial use, paywalls, subscriptions, donations, fundraising, or any other paid access.
 
 ---
 
@@ -119,6 +131,8 @@ Always keep a backup of your original `global.ini` before replacing it.
 ---
 
 ## Credits / Data Sources
+
+Tool created by **SesGreenwood**. If these tools help you out, in-game praise is always appreciated.
 
 This project would not be possible without the community tools that provide access to game data:
 
