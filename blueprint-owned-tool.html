@@ -403,9 +403,9 @@
             <span class="status" id="contractsStatus">No file loaded</span>
           </div>
           <div class="helper">
-            <p>Use the <code>contracts.ini</code> file from this repo. The tool reads its contract descriptions to build the blueprint checklist.</p>
+            <p>Use the <code>contracts.ini</code> file from this repo, or upload a <code>global.ini</code> that contains contract descriptions. The tool reads those descriptions to build the blueprint checklist.</p>
           </div>
-          <label for="contractsFile">contracts.ini</label>
+          <label for="contractsFile">contracts.ini or global.ini</label>
           <input id="contractsFile" type="file" accept=".ini,.txt,text/plain">
           <div id="contractsNotice" class="notice" hidden></div>
         </section>
@@ -439,7 +439,7 @@
             <h2 id="owned-title">3. Import / Export owned list</h2>
           </div>
           <div class="helper">
-            <p>Use <code>blueprintsOwned.txt</code> to save your owned blueprint list and import it again later.</p>
+            <p>Use <code>blueprintsOwned.txt</code> to save your owned blueprint list and import it again later. If your uploaded <code>global.ini</code> already has owned markers, those blueprints load automatically.</p>
           </div>
           <label for="ownedFile">Import blueprintsOwned.txt</label>
           <input id="ownedFile" type="file" accept=".txt,text/plain">
@@ -527,9 +527,14 @@
       readFileAsText(file, function (text) {
         blueprints = parseContractsFile(text);
         pruneOwnedSet();
+        var loadedOwned = loadOwnedFromGlobal(text);
         renderChecklist();
         contractsStatus.textContent = file.name;
-        showNotice(contractsNotice, "Extracted " + blueprints.length + " unique blueprint" + plural(blueprints.length) + ".", "success");
+        var message = "Extracted " + blueprints.length + " unique blueprint" + plural(blueprints.length) + ".";
+        if (loadedOwned) {
+          message += " Found " + loadedOwned + " existing owned blueprint" + plural(loadedOwned) + ".";
+        }
+        showNotice(contractsNotice, message, "success");
       });
     });
 
@@ -545,10 +550,16 @@
 
       readFileAsText(file, function (text) {
         globalText = text;
+        var loadedOwned = loadOwnedFromGlobal(text);
         revokeResultUrl();
+        renderChecklist();
         globalStatus.textContent = file.name;
         applyMeta.textContent = "Ready to apply owned status to " + file.name + ".";
-        showNotice(globalNotice, "Loaded " + file.name + " without modifying it.", "success");
+        var message = "Loaded " + file.name + " without modifying it.";
+        if (loadedOwned) {
+          message += " Found " + loadedOwned + " existing owned blueprint" + plural(loadedOwned) + ".";
+        }
+        showNotice(globalNotice, message, "success");
       });
     });
 
@@ -578,7 +589,7 @@
 
       var result = applyOwnedToGlobal(globalText);
       setDownload(downloadGlobalLink, ensureUtf8Bom(result.text), "global.ini", "text/plain;charset=utf-8");
-      applyMeta.textContent = "Applied " + result.replacements + " owned marker" + plural(result.replacements) + ".";
+      applyMeta.textContent = "Applied " + result.replacements + " owned marker update" + plural(result.replacements) + ".";
       showNotice(applyNotice, "Result is ready. Other text and formatting were preserved.", "success");
     });
 
@@ -618,9 +629,8 @@
 
           if (iniEntryPattern.test(trimmed)) break;
           if (trimmed === "" || /^<EM4>.*<\/EM4>$/.test(trimmed)) continue;
-          if (!/^\-\s+/.test(trimmed)) continue;
 
-          var name = normalizeBlueprintName(trimmed.replace(/^\-\s+/, ""));
+          var name = getBlueprintNameFromLine(trimmed);
           if (name && !seen.has(name)) {
             seen.add(name);
             names.push(name);
@@ -635,6 +645,30 @@
 
     function normalizeBlueprintName(name) {
       return String(name || "").replace(/\s+/g, " ").trim();
+    }
+
+    function getBlueprintNameFromLine(line) {
+      var match = String(line || "").trim().match(/^(?:Owned:\s*)?-\s+(.+)$/i);
+      return match ? normalizeBlueprintName(match[1]) : "";
+    }
+
+    function loadOwnedFromGlobal(text) {
+      var known = new Set(blueprints);
+      var loaded = 0;
+      var lines = text.replace(/^\uFEFF/, "").replace(/\\n/g, "\n").split(/\r\n|\n|\r/);
+
+      lines.forEach(function (line) {
+        var match = line.match(/^\s*Owned:\s*-\s+(.+)$/i);
+        if (!match) return;
+
+        var name = normalizeBlueprintName(match[1]);
+        if (!name) return;
+        if (blueprints.length && !known.has(name)) return;
+        if (!ownedSet.has(name)) loaded += 1;
+        ownedSet.add(name);
+      });
+
+      return loaded;
     }
 
     function renderChecklist() {
@@ -740,8 +774,14 @@
     }
 
     function applyOwnedToGlobal(text) {
-      var output = text;
       var replacements = 0;
+      var known = new Set(blueprints);
+      var output = text.replace(/(^|\r\n|\n|\r|\\n)([ \t]*)Owned:\s*-\s*([^\r\n]*?)([ \t]*)(?=$|\r\n|\n|\r|\\n)/g, function (match, separator, indent, name, trailing) {
+        var cleanName = normalizeBlueprintName(name);
+        if (!blueprints.length || !known.has(cleanName) || ownedSet.has(cleanName)) return match;
+        replacements += 1;
+        return separator + indent + "- " + cleanName + trailing;
+      });
       // Longer names first keeps similar names independent, even before the exact line
       // boundary check rules out partial matches.
       var owned = Array.from(ownedSet).sort(function (a, b) {

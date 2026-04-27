@@ -478,7 +478,7 @@
             <h2 id="save-title">4. Save / Load ranking</h2>
           </div>
           <div class="helper">
-            <p>Use <code>shipSorting.txt</code> to save your ship sorting and load it again later.</p>
+            <p>Use <code>shipSorting.txt</code> to save your ship sorting and load it again later. If your uploaded <code>global.ini</code> already has numbered ship names, those rankings load automatically.</p>
           </div>
           <label for="rankingFile">Load shipSorting.txt</label>
           <input id="rankingFile" type="file" accept=".txt,text/plain">
@@ -550,13 +550,18 @@
       readFileAsText(file, function (text) {
         globalText = text;
         ships = parseGlobalFile(text);
-        prunePriorityList();
+        var loadedFromGlobal = loadPriorityListFromGlobal();
+        if (!loadedFromGlobal) prunePriorityList();
         revokeResultUrl();
         renderShipList();
         renderPriorityList();
         globalStatus.textContent = file.name;
         applyMeta.textContent = "Ready to apply rankings to " + file.name + ".";
-        showNotice(globalNotice, "Extracted " + ships.length + " ship entr" + (ships.length === 1 ? "y" : "ies") + ".", "success");
+        var message = "Extracted " + ships.length + " ship entr" + (ships.length === 1 ? "y" : "ies") + ".";
+        if (loadedFromGlobal) {
+          message += " Loaded " + loadedFromGlobal + " existing ranked ship" + plural(loadedFromGlobal) + " into the priority list.";
+        }
+        showNotice(globalNotice, message, "success");
       });
     });
 
@@ -614,7 +619,9 @@
         found.push({
           key: key,
           name: stripExistingRank(match[2]),
-          originalValue: String(match[2] || "").trim()
+          originalValue: String(match[2] || "").trim(),
+          existingRank: getExistingRank(match[2]),
+          lineNumber: found.length
         });
       });
 
@@ -626,6 +633,24 @@
 
     function stripExistingRank(value) {
       return String(value || "").trim().replace(/^\d+\.\s*/, "").replace(/\s+/g, " ").trim();
+    }
+
+    function getExistingRank(value) {
+      var match = String(value || "").trim().match(/^(\d+)\.\s+/);
+      return match ? Number(match[1]) : null;
+    }
+
+    function loadPriorityListFromGlobal() {
+      var ranked = ships.filter(function (ship) {
+        return ship.existingRank !== null;
+      }).sort(function (a, b) {
+        return a.existingRank - b.existingRank || a.lineNumber - b.lineNumber;
+      });
+
+      priorityList = ranked.map(function (ship) {
+        return { key: ship.key, name: ship.name };
+      });
+      return priorityList.length;
     }
 
     function renderShipList() {
@@ -856,7 +881,15 @@
         if (!parsed) return match;
 
         var cleanKey = parsed[2].trim();
-        if (!ranksByKey.has(cleanKey)) return match;
+        if (/_short(?:,.*)?$/i.test(cleanKey)) return match;
+        if (!ranksByKey.has(cleanKey)) {
+          var cleanedName = stripExistingRank(parsed[4]);
+          if (cleanedName !== normalizeText(parsed[4])) {
+            replacements += 1;
+            return parsed[1] + parsed[2] + parsed[3] + cleanedName + ending;
+          }
+          return match;
+        }
 
         var ranked = ranksByKey.get(cleanKey);
         replacements += 1;

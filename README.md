@@ -31,17 +31,19 @@ Use `blueprint-owned-tool.html` to extract blueprint names from `contracts.ini`,
 
 **Features:**
 - Parses bullet-list blueprint names that appear after `<EM4>Potential Blueprints</EM4>` in mission descriptions
+- Can build the checklist from `contracts.ini` or a `global.ini` with contract descriptions
 - Displays a checklist of all available blueprints
 - Searches and filters the blueprint checklist
 - Selects or deselects all currently visible blueprints
 - Imports/exports your owned list as `blueprintsOwned.txt`
+- Loads existing `Owned: - Blueprint Name` markers from `global.ini` automatically
 - Applies `Owned: - Blueprint Name` to matching bullet lines in `global.ini`
 - Preserves the rest of `global.ini` as uploaded
 
 **Workflow:**
-1. Upload `contracts.ini`
+1. Upload `contracts.ini`, or upload `global.ini` if it contains the blueprint contract descriptions
 2. Select owned blueprints
-3. (Optional) import or export `blueprintsOwned.txt`
+3. (Optional) import or export `blueprintsOwned.txt`; already-marked blueprints in `global.ini` are loaded automatically
 4. Upload `global.ini`
 5. Apply changes and download updated file
 
@@ -54,6 +56,7 @@ Use `ship-priority-tool.html` to search, select, and rank ships from `global.ini
 **Features:**
 - Extracts `vehicle_Name*` entries from `global.ini`, excluding `_short` entries
 - Removes existing numeric prefixes while building the ship list
+- Loads existing numbered ship names from `global.ini` into the priority list automatically
 - Searches and filters by ship name or localization key
 - Builds a ranked priority list with Add, Move Up, Move Down, and Remove controls
 - Saves/loads rankings as `shipSorting.txt`
@@ -67,7 +70,7 @@ Use `ship-priority-tool.html` to search, select, and rank ships from `global.ini
 1. Upload `global.ini`
 2. Search and add ships to your priority list
 3. Reorder with Move Up and Move Down
-4. (Optional) save or load `shipSorting.txt`
+4. (Optional) save or load `shipSorting.txt`; already-numbered ships in `global.ini` are loaded automatically
 5. Apply changes and download updated file
 
 ---
