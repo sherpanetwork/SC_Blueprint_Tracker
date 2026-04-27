@@ -81,6 +81,43 @@ These tools rely on `.ini` files generated from community tools:
 
 ---
 
+## How This Works
+
+These tools use Star Citizen's community localization support. CIG allows the game to load a localized `global.ini` file from the `StarCitizen/LIVE/data/Localization/<language>/` folder, with the active language set in `user.cfg`.
+
+Instead of translating the game into another language, these tools make small, targeted edits to English localization text. The Blueprint Tracker marks matching blueprint lines as owned, and the Ship Priority Tool adds ranking numbers to ship names. The game then reads the edited English `global.ini` through the same localization system.
+
+You can read CIG's community localization instructions here:
+https://robertsspaceindustries.com/spectrum/community/SC/forum/1/thread/star-citizen-community-localization-update
+
+---
+
+## Installing the Updated `global.ini`
+
+After using either tool, download the updated `global.ini` and place it here:
+
+```text
+StarCitizen/
+└── LIVE/
+    ├── user.cfg
+    └── data/
+        └── Localization/
+            └── english/
+                └── global.ini
+```
+
+If you already have a `user.cfg` file, do not overwrite it. Open your existing `user.cfg` and add this line at the end:
+
+```text
+g_language = english
+```
+
+If you do not have a `user.cfg` file, create one in the `StarCitizen/LIVE/` folder root and add that same line.
+
+Always keep a backup of your original `global.ini` before replacing it.
+
+---
+
 ## Credits / Data Sources
 
 This project would not be possible without the community tools that provide access to game data:
